@@ -1,2 +1,0 @@
-# signatures
-Digital Signature System
