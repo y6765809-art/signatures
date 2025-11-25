@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>זרימה פלוס - חתימה על מסמך</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --gold-primary: #D4AF37;
+            --gold-light: #FFD700;
+            --success: #2ECC71;
+            --danger: #E74C3C;
+            --dark: #1A1A1A;
+            --white: #FFFFFF;
+        }
+        
+        body {
+            font-family: 'Heebo', sans-serif;
+            background: linear-gradient(135deg, #1A1A1A 0%, #2C2C2C 50%, #1A1A1A 100%);
+            min-height: 100vh;
+            padding: 20px;
+            direction: rtl;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--dark) 0%, #2C2C2C 100%);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            border: 2px solid var(--gold-primary);
+        }
+        
+        .logo {
+            font-size: 36px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .slogan {
+            font-size: 15px;
+            color: #F5E6D3;
+            font-style: italic;
+        }
+        
+        .panel {
+            background: linear-gradient(to bottom, var(--white), #f8f8f8);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            border: 2px solid var(--gold-primary);
+        }
+        
+        .panel-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 18px;
+            color: var(--dark);
+            padding-bottom: 12px;
+            border-bottom: 3px solid var(--gold-primary);
+        }
+        
+        .doc-info {
+            background: linear-gradient(135deg, #F5E6D3, #fff);
+            border: 2px solid var(--gold-primary);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .doc-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+        
+        .doc-info-label {
+            font-weight: 700;
+            color: var(--dark);
+        }
+        
+        .pdf-container {
+            border: 2px solid var(--gold-primary);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .pdf-controls {
+            background: linear-gradient(135deg, var(--dark), #2C2C2C);
+            padding: 12px;
+            text-align: center;
+            color: var(--gold-light);
+            font-weight: 700;
+        }
+        
+        .pdf-viewer {
+            background: #f5f5f5;
+            padding: 20px;
+            text-align: center;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        #pdfCanvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .form-group {
+            margin-bottom: 18px;
+        }
+        
+        .form-label {
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--dark);
+            font-size: 15px;
+            display: block;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Heebo', sans-serif;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--gold-primary);
+            box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.1);
+        }
+        
+        .form-input.required {
+            border-right: 4px solid var(--gold-primary);
+        }
+        
+        .signature-canvas-container {
+            border: 3px solid var(--gold-primary);
+            border-radius: 10px;
+            background: white;
+            padding: 18px;
+            margin-top: 12px;
+        }
+        
+        .signature-tools {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .tool-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .tool-label {
+            font-size: 14px;
+            font-weight: 700;
+        }
+        
+        .color-btn {
+            width: 35px;
+            height: 35px;
+            border: 3px solid #ddd;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .color-btn:hover {
+            transform: scale(1.15);
+        }
+        
+        .color-btn.active {
+            border-color: var(--gold-primary);
+            border-width: 4px;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.3);
+        }
+        
+        #signatureCanvas {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            cursor: crosshair;
+            display: block;
+            width: 100%;
+            background: white;
+            touch-action: none; /* מונע גלילה בזמן חתימה */
+        }
+        
+        #signatureCanvas.drawing {
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="3" fill="%23000" opacity="0.5"/></svg>') 10 10, crosshair;
+        }
+        
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 15px;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gold-primary), var(--gold-light));
+            color: var(--dark);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(212, 175, 55, 0.5);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+            color: var(--dark);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #27ae60);
+            color: white;
+            font-size: 17px;
+            padding: 16px 35px;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-block {
+            width: 100%;
+        }
+        
+        .success-screen {
+            display: none;
+            text-align: center;
+            padding: 50px;
+        }
+        
+        .success-icon {
+            font-size: 100px;
+            margin-bottom: 25px;
+            animation: scaleIn 0.6s ease-out;
+        }
+        
+        @keyframes scaleIn {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+        
+        .success-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--success);
+            margin-bottom: 15px;
+        }
+        
+        .alert {
+            padding: 14px;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .alert-info {
+            background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+            border: 2px solid #17a2b8;
+            color: #0c5460;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+        }
+        
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--gold-primary);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 25px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">✨ זרימה פלוס</div>
+            <div class="slogan">תן לכסף שלך לזרום</div>
+        </div>
+        
+        <div class="loading" id="loadingScreen">
+            <div class="spinner"></div>
+            <div style="font-size: 18px; color: var(--gold-light);">טוען מסמך...</div>
+        </div>
+        
+        <div id="mainContent" class="hidden">
+            <div class="panel">
+                <div class="panel-title">📄 פרטי מסמך</div>
+                
+                <div class="doc-info">
+                    <div class="doc-info-row">
+                        <span class="doc-info-label">שם המסמך:</span>
+                        <span id="docName">-</span>
+                    </div>
+                    <div class="doc-info-row">
+                        <span class="doc-info-label">שם הנמען:</span>
+                        <span id="recipientName">-</span>
+                    </div>
+                    <div class="doc-info-row">
+                        <span class="doc-info-label">נוצר בתאריך:</span>
+                        <span id="createdDate">-</span>
+                    </div>
+                    <div class="doc-info-row">
+                        <span class="doc-info-label">תוקף עד:</span>
+                        <span id="expirationDate">-</span>
+                    </div>
+                    
+                    <div class="hidden" id="personalMessageBox" style="margin-top: 15px; padding: 15px; background: white; border-radius: 8px; border-right: 4px solid var(--gold-primary);">
+                        <strong>💬 הודעה אישית:</strong>
+                        <div id="personalMessage" style="margin-top: 10px; line-height: 1.6;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-title">📑 צפייה במסמך</div>
+                
+                <div class="pdf-container">
+                    <div class="pdf-controls">
+                        <span>📄 <span id="fileName">מסמך</span></span>
+                    </div>
+                    <div class="pdf-viewer">
+                        <canvas id="pdfCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-title">✍️ מילוי פרטים</div>
+                
+                <div class="alert alert-info">
+                    💡 מלא את כל השדות המסומנים ב-(*) ואז חתום במסגרת החתימה
+                </div>
+                
+                <form id="signatureForm"></form>
+                
+                <div class="form-group" style="margin-top: 25px;">
+                    <label class="form-label">✍️ חתימה דיגיטלית *</label>
+                    
+                    <div class="signature-canvas-container">
+                        <div class="signature-tools">
+                            <div class="tool-group">
+                                <span class="tool-label">צבע:</span>
+                                <button type="button" class="color-btn active" style="background: #000;" data-color="#000"></button>
+                                <button type="button" class="color-btn" style="background: #00F;" data-color="#00F"></button>
+                                <button type="button" class="color-btn" style="background: #F00;" data-color="#F00"></button>
+                            </div>
+                            
+                            <div class="tool-group">
+                                <span class="tool-label">עובי:</span>
+                                <input type="range" id="thicknessRange" min="1" max="5" value="2" style="width: 90px;">
+                            </div>
+                            
+                            <button type="button" class="btn btn-secondary" onclick="clearSignature()">
+                                🗑️ נקה
+                            </button>
+                        </div>
+                        
+                        <canvas id="signatureCanvas" width="800" height="200"></canvas>
+                    </div>
+                </div>
+                
+                <button type="button" class="btn btn-success btn-block" onclick="submitSignature()" style="margin-top: 30px;">
+                    ✅ שלח חתימה
+                </button>
+            </div>
+        </div>
+        
+        <div class="panel hidden" id="successScreen">
+            <div class="success-screen">
+                <div class="success-icon">✅</div>
+                <div class="success-title">המסמך נחתם בהצלחה!</div>
+                <div style="font-size: 17px; color: #666; margin-bottom: 35px;">תודה רבה. המסמך החתום נשלח למשלח.</div>
+                
+                <div class="panel-title" style="margin-bottom: 15px;">💾 הורדת מסמך</div>
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-bottom: 30px;">
+                    <button class="btn btn-success" onclick="downloadSignedPDF()">
+                        📄 הורד PDF
+                    </button>
+                    <button class="btn btn-success" onclick="downloadSignedDocument()">
+                        🖼️ הורד תמונה
+                    </button>
+                </div>
+                
+                <div class="panel-title" style="margin-bottom: 15px;">📤 שליחה חזרה לשולח</div>
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-bottom: 30px;">
+                    <button class="btn btn-whatsapp" onclick="sendToSenderWhatsApp()" style="background: #25D366;">
+                        📱 שלח ב-WhatsApp
+                    </button>
+                    <button class="btn btn-primary" onclick="sendToSenderEmail()">
+                        📧 שלח במייל
+                    </button>
+                </div>
+                
+                <div style="border-top: 2px solid var(--gold-primary); padding-top: 20px; margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="returnToSender()">
+                        ↩️ חזור למערכת
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBc3A8nWNtH2MYa7qbKWNZsnuxiz04RzSE",
+            authDomain: "zrima-plus.firebaseapp.com",
+            projectId: "zrima-plus",
+            storageBucket: "zrima-plus.firebasestorage.app",
+            messagingSenderId: "909697604634",
+            appId: "1:909697604634:web:dd7592bc84b7df6a0885a3"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        let documentData = null;
+        let pdfDoc = null;
+        let signatureCanvas = null;
+        let signatureContext = null;
+        let isDrawing = false;
+        let currentColor = '#000';
+        let currentThickness = 2;
+        let hasSignature = false;
+        
+        const fieldTypes = {
+            signature: { name: 'חתימה', required: true },
+            name: { name: 'שם מלא', required: true },
+            email: { name: 'מייל', required: false },
+            phone: { name: 'טלפון', required: false },
+            idNumber: { name: 'ת.ז', required: false },
+            date: { name: 'תאריך', required: false },
+            custom: { name: 'טקסט חופשי', required: false }
+        };
+        
+        window.addEventListener('DOMContentLoaded', loadDocument);
+        
+        async function loadDocument() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const docId = urlParams.get('id');
+                
+                if (!docId) {
+                    throw new Error('לא נמצא מזהה מסמך');
+                }
+                
+                // קריאת המסמך מ-Firebase
+                const docRef = db.collection('documents').doc(docId);
+                const docSnap = await docRef.get();
+                
+                if (!docSnap.exists) {
+                    throw new Error('המסמך לא נמצא במערכת');
+                }
+                
+                documentData = docSnap.data();
+                console.log('📄 Document loaded:', documentData);
+                
+                // Check if already signed
+                if (documentData.status === 'signed') {
+                    alert('⚠️ המסמך כבר נחתם!');
+                    return;
+                }
+                
+                displayDocumentInfo();
+                displayPDF();
+                createFormFields();
+                initSignatureCanvas();
+                
+                document.getElementById('loadingScreen').classList.add('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                alert('שגיאה בטעינת המסמך: ' + error.message);
+            }
+        }
+        
+        function displayDocumentInfo() {
+            document.getElementById('docName').textContent = documentData.documentName;
+            document.getElementById('recipientName').textContent = documentData.recipientName;
+            document.getElementById('fileName').textContent = documentData.fileName;
+            
+            const created = new Date(documentData.createdAt);
+            document.getElementById('createdDate').textContent = created.toLocaleDateString('he-IL');
+            
+            if (documentData.expiration != -1) {
+                const expires = new Date(created);
+                expires.setDate(expires.getDate() + parseInt(documentData.expiration));
+                document.getElementById('expirationDate').textContent = expires.toLocaleDateString('he-IL');
+            } else {
+                document.getElementById('expirationDate').textContent = 'ללא תוקף';
+            }
+            
+            if (documentData.personalMessage) {
+                document.getElementById('personalMessage').textContent = documentData.personalMessage;
+                document.getElementById('personalMessageBox').classList.remove('hidden');
+            }
+        }
+        
+        async function displayPDF() {
+            try {
+                // ⭐ IMPORTANT: משתמשים רק בתמונות! (לא תלוי בפונטים)
+                if (documentData.pdfImages && documentData.pdfImages.length > 0) {
+                    const canvas = document.getElementById('pdfCanvas');
+                    const context = canvas.getContext('2d');
+                    
+                    const img = new Image();
+                    img.onload = function() {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        context.drawImage(img, 0, 0);
+                        
+                        // התמונה כבר ב-scale 2.0 מ-index
+                        window.pdfScale = 2.0;
+                        
+                        // הצגת השדות על התמונה
+                        displayFieldsOnPDF(canvas, documentData.fields);
+                        
+                        console.log('✅ PDF rendered from image with scale:', window.pdfScale);
+                    };
+                    img.onerror = function() {
+                        throw new Error('שגיאה בטעינת תמונת המסמך');
+                    };
+                    img.src = documentData.pdfImages[0];
+                }
+                // אם אין תמונות - אז יש בעיה
+                else {
+                    throw new Error('לא נמצאו תמונות של המסמך');
+                }
+            } catch (error) {
+                console.error('❌ PDF error:', error);
+                alert('שגיאה בטעינת המסמך: ' + error.message);
+            }
+        }
+        
+        function displayFieldsOnPDF(canvas, fields) {
+            if (!fields || fields.length === 0) return;
+            
+            const context = canvas.getContext('2d');
+            
+            fields.forEach(field => {
+                if (field.page !== 1) return; // רק עמוד ראשון לעכשיו
+                
+                // סימון השדה
+                context.save();
+                context.strokeStyle = field.color || '#00BCD4';
+                context.fillStyle = field.color + '33' || '#00BCD433';
+                context.lineWidth = 3;
+                
+                // ציור המלבן
+                context.fillRect(field.x, field.y, field.width, field.height);
+                context.strokeRect(field.x, field.y, field.width, field.height);
+                
+                // כתיבת שם השדה
+                context.fillStyle = '#ffffff';
+                context.font = 'bold 16px Arial';
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.fillText(field.icon + ' ' + field.name, field.x + field.width / 2, field.y + field.height / 2);
+                
+                context.restore();
+            });
+            
+            console.log('✅ Fields displayed on PDF:', fields.length);
+        }
+        
+        function createFormFields() {
+            const form = document.getElementById('signatureForm');
+            const uniqueFields = [...new Set(documentData.fields.map(f => f.type))];
+            
+            uniqueFields.forEach(fieldType => {
+                if (fieldType === 'signature') return;
+                
+                const fieldConfig = fieldTypes[fieldType];
+                if (!fieldConfig) return;
+                
+                const group = document.createElement('div');
+                group.className = 'form-group';
+                
+                const label = document.createElement('label');
+                label.className = 'form-label';
+                label.textContent = fieldConfig.name + (fieldConfig.required ? ' *' : '');
+                
+                const input = document.createElement('input');
+                input.type = fieldType === 'email' ? 'email' : fieldType === 'date' ? 'date' : 'text';
+                input.className = 'form-input' + (fieldConfig.required ? ' required' : '');
+                input.id = 'field_' + fieldType;
+                input.placeholder = 'הזן ' + fieldConfig.name;
+                if (fieldConfig.required) input.required = true;
+                
+                group.appendChild(label);
+                group.appendChild(input);
+                form.appendChild(group);
+            });
+        }
+        
+        function initSignatureCanvas() {
+            signatureCanvas = document.getElementById('signatureCanvas');
+            signatureContext = signatureCanvas.getContext('2d');
+            
+            signatureCanvas.width = signatureCanvas.parentElement.offsetWidth - 40;
+            
+            document.querySelectorAll('.color-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentColor = btn.getAttribute('data-color');
+                });
+            });
+            
+            document.getElementById('thicknessRange').addEventListener('input', (e) => {
+                currentThickness = parseInt(e.target.value);
+            });
+            
+            signatureCanvas.addEventListener('mousedown', startDrawing);
+            signatureCanvas.addEventListener('mousemove', draw);
+            signatureCanvas.addEventListener('mouseup', stopDrawing);
+            signatureCanvas.addEventListener('mouseout', stopDrawing);
+            
+            signatureCanvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = signatureCanvas.getBoundingClientRect();
+                const mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                signatureCanvas.dispatchEvent(mouseEvent);
+            });
+            
+            signatureCanvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                signatureCanvas.dispatchEvent(mouseEvent);
+            });
+            
+            signatureCanvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                signatureCanvas.dispatchEvent(new MouseEvent('mouseup'));
+            });
+        }
+        
+        function startDrawing(e) {
+            isDrawing = true;
+            hasSignature = true;
+            
+            // הוספת class לסמן מותאם
+            signatureCanvas.classList.add('drawing');
+            
+            const rect = signatureCanvas.getBoundingClientRect();
+            const scaleX = signatureCanvas.width / rect.width;
+            const scaleY = signatureCanvas.height / rect.height;
+            
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            
+            signatureContext.beginPath();
+            signatureContext.moveTo(x, y);
+            signatureContext.strokeStyle = currentColor;
+            signatureContext.lineWidth = currentThickness;
+            signatureContext.lineCap = 'round';
+            signatureContext.lineJoin = 'round';
+            
+            // ציור נקודה ראשונה (כדי שגם קליק בודד ייראה)
+            signatureContext.fillStyle = currentColor;
+            signatureContext.arc(x, y, currentThickness / 2, 0, 2 * Math.PI);
+            signatureContext.fill();
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            const rect = signatureCanvas.getBoundingClientRect();
+            const scaleX = signatureCanvas.width / rect.width;
+            const scaleY = signatureCanvas.height / rect.height;
+            
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            
+            signatureContext.lineTo(x, y);
+            signatureContext.stroke();
+            signatureContext.beginPath();
+            signatureContext.moveTo(x, y);
+        }
+        
+        function stopDrawing() {
+            if (isDrawing) {
+                isDrawing = false;
+                signatureCanvas.classList.remove('drawing');
+            }
+        }
+        
+        function clearSignature() {
+            signatureContext.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+            hasSignature = false;
+        }
+        
+        async function submitSignature() {
+            if (!hasSignature) {
+                alert('❌ אנא חתום במסגרת החתימה');
+                return;
+            }
+            
+            let isValid = true;
+            document.querySelectorAll('.form-input.required').forEach(input => {
+                if (!input.value.trim()) {
+                    input.style.borderColor = 'red';
+                    isValid = false;
+                } else {
+                    input.style.borderColor = '';
+                }
+            });
+            
+            if (!isValid) {
+                alert('❌ אנא מלא את כל השדות החובה');
+                return;
+            }
+            
+            const signatureData = {
+                signedAt: new Date().toISOString(),
+                signatureImage: signatureCanvas.toDataURL('image/png'),
+                fields: {}
+            };
+            
+            document.querySelectorAll('.form-input').forEach(input => {
+                signatureData.fields[input.id.replace('field_', '')] = input.value;
+            });
+            
+            try {
+                // עדכון המסמך ב-Firebase
+                const urlParams = new URLSearchParams(window.location.search);
+                const docId = urlParams.get('id');
+                
+                await db.collection('documents').doc(docId).update({
+                    status: 'signed',
+                    signedAt: signatureData.signedAt,
+                    signatureImage: signatureData.signatureImage,
+                    signedFields: signatureData.fields
+                });
+                
+                console.log('✅ Signature saved to Firebase');
+                
+                // שליחת הודעה לשולח
+                await sendNotificationToSender(docId, documentData);
+                
+                document.getElementById('mainContent').classList.add('hidden');
+                document.getElementById('successScreen').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error saving signature:', error);
+                alert('❌ שגיאה בשמירת החתימה: ' + error.message);
+            }
+        }
+        
+        /**
+         * הורדת מסמך חתום - PNG
+         */
+        function downloadSignedDocument() {
+            const canvas = document.getElementById('pdfCanvas');
+            const link = document.createElement('a');
+            link.download = `${documentData.documentName}_חתום.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            
+            console.log('✅ Signed document downloaded as PNG');
+        }
+        
+        /**
+         * הורדת מסמך חתום - PDF
+         */
+        async function downloadSignedPDF() {
+            try {
+                // יצירת PDF פשוט עם jsPDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF();
+                
+                const canvas = document.getElementById('pdfCanvas');
+                const imgData = canvas.toDataURL('image/png');
+                
+                // חישוב גודל התמונה ב-PDF
+                const imgWidth = 210; // A4 width in mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                pdf.save(`${documentData.documentName}_חתום.pdf`);
+                
+                console.log('✅ Signed document downloaded as PDF');
+            } catch (error) {
+                console.error('❌ Error creating PDF:', error);
+                alert('שגיאה ביצירת PDF. מוריד כתמונה במקום...');
+                downloadSignedDocument();
+            }
+        }
+        
+        /**
+         * שליחת המסמך החתום למשלח ב-WhatsApp
+         */
+        function sendToSenderWhatsApp() {
+            const senderPhone = documentData.senderPhone || documentData.recipientPhone;
+            
+            if (!senderPhone) {
+                alert('❌ לא נמצא מספר טלפון של השולח');
+                return;
+            }
+            
+            const message = `✅ חתמתי על המסמך "${documentData.documentName}"!\n\n` +
+                           `נחתם על ידי: ${documentData.recipientName}\n` +
+                           `תאריך: ${new Date().toLocaleDateString('he-IL')}\n\n` +
+                           `המסמך החתום זמין במערכת.`;
+            
+            const whatsappURL = `https://wa.me/${senderPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappURL, '_blank');
+            
+            console.log('✅ WhatsApp notification sent to sender');
+        }
+        
+        /**
+         * שליחת המסמך החתום למשלח במייל
+         */
+        async function sendToSenderEmail() {
+            const senderEmail = documentData.senderEmail || documentData.recipientEmail;
+            
+            if (!senderEmail) {
+                alert('❌ לא נמצא מייל של השולח');
+                return;
+            }
+            
+            try {
+                // שליחה דרך Firebase Cloud Function או Gmail API
+                const subject = `✅ המסמך "${documentData.documentName}" נחתם`;
+                const body = `שלום,\n\n` +
+                           `המסמך "${documentData.documentName}" נחתם בהצלחה!\n\n` +
+                           `נחתם על ידי: ${documentData.recipientName}\n` +
+                           `תאריך: ${new Date().toLocaleDateString('he-IL')}\n` +
+                           `שעה: ${new Date().toLocaleTimeString('he-IL')}\n\n` +
+                           `המסמך החתום זמין במערכת זרימה פלוס.\n\n` +
+                           `בברכה,\nזרימה פלוס`;
+                
+                // אפשרות 1: פתיחת תוכנת המייל
+                const mailtoLink = `mailto:${senderEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                window.open(mailtoLink, '_blank');
+                
+                console.log('✅ Email notification sent to sender');
+                
+            } catch (error) {
+                console.error('❌ Error sending email:', error);
+                alert('שגיאה בשליחת מייל');
+            }
+        }
+        
+        /**
+         * חזרה לשולח
+         */
+        function returnToSender() {
+            // חזרה לעמוד הראשי של המערכת
+            const baseURL = window.location.href.split('/signature-page.html')[0];
+            const mainURL = baseURL + '/index.html';
+            
+            if (confirm('האם תרצה לחזור לעמוד הראשי של המערכת?')) {
+                window.location.href = mainURL;
+            }
+        }
+        
+        /**
+         * שליחת הודעה לשולח (דרך Firebase)
+         */
+        async function sendNotificationToSender(docId, docData) {
+            try {
+                // עדכון ב-Firebase שהמסמך נחתם
+                await db.collection('notifications').add({
+                    documentId: docId,
+                    documentName: docData.documentName,
+                    recipientName: docData.recipientName,
+                    signedAt: new Date().toISOString(),
+                    type: 'document_signed',
+                    read: false
+                });
+                
+                console.log('📧 Notification saved to Firebase');
+            } catch (error) {
+                console.error('Error sending notification:', error);
+            }
+        }
+        
+        async function sendNotificationToSender(docId, docData) {
+            try {
+                // כאן תוכל להוסיף שליחת מייל אמיתית
+                // לעכשיו רק נשמור הודעה ב-Firebase
+                
+                const notification = {
+                    type: 'document_signed',
+                    documentId: docId,
+                    documentName: docData.documentName,
+                    recipientName: docData.recipientName,
+                    signedAt: new Date().toISOString(),
+                    message: `המסמך "${docData.documentName}" נחתם על ידי ${docData.recipientName}`
+                };
+                
+                await db.collection('notifications').add(notification);
+                
+                console.log('✅ Notification sent to sender');
+                
+                // אם יש מייל של השולח - אפשר לשלוח מייל אמיתי
+                // זה ידרוש הגדרת Email service (Gmail/SendGrid)
+                
+            } catch (error) {
+                console.error('⚠️ Failed to send notification:', error);
+                // לא נעצור את התהליך בגלל זה
+            }
+        }
+    </script>
+</body>
+</html>
