@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>דשבורד - זרימה פלוס</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --color-primary: #00BCD4;
+            --color-secondary: #FFD700;
+            --color-success: #4CAF50;
+            --color-warning: #FF9800;
+            --color-danger: #F44336;
+            --color-dark: #212121;
+            --color-light: #FAFAFA;
+        }
+        
+        body {
+            font-family: 'Heebo', sans-serif;
+            background: #f5f5f5;
+            direction: rtl;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0097a7;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .stat-title {
+            font-size: 14px;
+            color: #666;
+            font-weight: 600;
+        }
+        
+        .stat-icon {
+            font-size: 32px;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--color-dark);
+        }
+        
+        .stat-change {
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        
+        .stat-change.positive {
+            color: var(--color-success);
+        }
+        
+        .stat-change.negative {
+            color: var(--color-danger);
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .chart-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--color-dark);
+        }
+        
+        .activity-section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--color-dark);
+        }
+        
+        .activity-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .activity-item {
+            padding: 15px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-icon {
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: var(--color-light);
+        }
+        
+        .activity-content {
+            flex: 1;
+        }
+        
+        .activity-text {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .activity-time {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .quick-action-btn {
+            background: white;
+            border: 2px solid #e5e7eb;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .quick-action-btn:hover {
+            border-color: var(--color-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .quick-action-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .quick-action-text {
+            font-weight: 600;
+            color: var(--color-dark);
+        }
+        
+        @media (max-width: 1024px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">💰 זרימה פלוס - דשבורד</div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="goToApp()">➕ מסמך חדש</button>
+            </div>
+        </div>
+        
+        <!-- Statistics Cards -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">סה"כ מסמכים</span>
+                    <span class="stat-icon">📄</span>
+                </div>
+                <div class="stat-value" id="totalDocs">0</div>
+                <div class="stat-change positive" id="totalChange">+0 החודש</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">נחתמו היום</span>
+                    <span class="stat-icon">✅</span>
+                </div>
+                <div class="stat-value" id="signedToday">0</div>
+                <div class="stat-change" id="signedChange">0 בשבוע</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">אחוז חתימה</span>
+                    <span class="stat-icon">📊</span>
+                </div>
+                <div class="stat-value" id="signatureRate">0%</div>
+                <div class="stat-change" id="rateChange">ממוצע</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">ממוצע זמן</span>
+                    <span class="stat-icon">⏱️</span>
+                </div>
+                <div class="stat-value" id="avgTime">0</div>
+                <div class="stat-change">שעות</div>
+            </div>
+        </div>
+        
+        <!-- Charts -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3 class="chart-title">📈 מסמכים לפי חודש</h3>
+                <canvas id="monthlyChart"></canvas>
+            </div>
+            
+            <div class="chart-card">
+                <h3 class="chart-title">🎯 סטטוסים</h3>
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Recent Activity -->
+        <div class="activity-section">
+            <h2 class="section-title">🕐 פעילות אחרונה</h2>
+            <div class="activity-list" id="activityList">
+                <p style="text-align: center; color: #666; padding: 40px;">אין פעילות עדיין</p>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <div class="quick-action-btn" onclick="goToApp()">
+                <div class="quick-action-icon">📄</div>
+                <div class="quick-action-text">מסמך חדש</div>
+            </div>
+            
+            <div class="quick-action-btn" onclick="viewHistory()">
+                <div class="quick-action-icon">📚</div>
+                <div class="quick-action-text">היסטוריה</div>
+            </div>
+            
+            <div class="quick-action-btn" onclick="exportData()">
+                <div class="quick-action-icon">📥</div>
+                <div class="quick-action-text">ייצוא נתונים</div>
+            </div>
+            
+            <div class="quick-action-btn" onclick="viewSettings()">
+                <div class="quick-action-icon">⚙️</div>
+                <div class="quick-action-text">הגדרות</div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="security.js"></script>
+    <script src="config.js"></script>
+    <script src="history-manager.js"></script>
+    <script>
+        // Initialize Dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeDashboard();
+        });
+        
+        function initializeDashboard() {
+            // Apply color scheme
+            ZrimaPlusConfig.applyColorScheme();
+            
+            // Load data
+            loadStatistics();
+            loadCharts();
+            loadRecentActivity();
+            
+            console.log('✅ Dashboard initialized');
+        }
+        
+        function loadStatistics() {
+            const stats = window.HistoryManager.getStatistics();
+            
+            // Total documents
+            document.getElementById('totalDocs').textContent = stats.total;
+            document.getElementById('totalChange').textContent = `+${stats.thisMonth} החודש`;
+            
+            // Signed today
+            const signedToday = window.HistoryManager.documents.filter(d => {
+                return d.status === 'signed' && 
+                       new Date(d.signedAt).toDateString() === new Date().toDateString();
+            }).length;
+            
+            document.getElementById('signedToday').textContent = signedToday;
+            document.getElementById('signedChange').textContent = `${stats.byStatus.signed || 0} בשבוע`;
+            
+            // Signature rate
+            document.getElementById('signatureRate').textContent = stats.signatureRate + '%';
+            
+            // Average time
+            document.getElementById('avgTime').textContent = stats.avgSignatureTime || 0;
+            
+            console.log('📊 Statistics loaded');
+        }
+        
+        function loadCharts() {
+            loadMonthlyChart();
+            loadStatusChart();
+        }
+        
+        function loadMonthlyChart() {
+            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            
+            // Get last 6 months data
+            const months = [];
+            const data = [];
+            
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date();
+                date.setMonth(date.getMonth() - i);
+                
+                const monthName = date.toLocaleDateString('he-IL', { month: 'short' });
+                months.push(monthName);
+                
+                // Count documents in this month
+                const count = window.HistoryManager.documents.filter(d => {
+                    const docDate = new Date(d.createdAt);
+                    return docDate.getMonth() === date.getMonth() &&
+                           docDate.getFullYear() === date.getFullYear();
+                }).length;
+                
+                data.push(count);
+            }
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'מסמכים',
+                        data: data,
+                        borderColor: ZrimaPlusConfig.getActiveColorScheme().primary,
+                        backgroundColor: ZrimaPlusConfig.getActiveColorScheme().primary + '20',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+            
+            console.log('📈 Monthly chart loaded');
+        }
+        
+        function loadStatusChart() {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            const stats = window.HistoryManager.getStatistics();
+            
+            const labels = [];
+            const data = [];
+            const colors = [];
+            
+            Object.entries(stats.byStatus).forEach(([status, count]) => {
+                if (count > 0) {
+                    const statusConfig = ZrimaPlusConfig.documentStatuses[status];
+                    labels.push(statusConfig.name);
+                    data.push(count);
+                    colors.push(statusConfig.color);
+                }
+            });
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+            
+            console.log('🎯 Status chart loaded');
+        }
+        
+        function loadRecentActivity() {
+            const documents = window.HistoryManager.documents
+                .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+                .slice(0, 10);
+            
+            if (documents.length === 0) {
+                return;
+            }
+            
+            const activityList = document.getElementById('activityList');
+            
+            activityList.innerHTML = documents.map(doc => {
+                const status = ZrimaPlusConfig.documentStatuses[doc.status];
+                const timeAgo = getTimeAgo(doc.updatedAt);
+                
+                return `
+                    <div class="activity-item">
+                        <div class="activity-icon" style="background: ${status.color}20; color: ${status.color};">
+                            ${status.icon}
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-text">
+                                ${doc.documentName} - ${doc.recipientName}
+                            </div>
+                            <div class="activity-time">
+                                ${status.name} • ${timeAgo}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            console.log('🕐 Recent activity loaded');
+        }
+        
+        function getTimeAgo(dateString) {
+            const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
+            
+            if (seconds < 60) return 'עכשיו';
+            if (seconds < 3600) return `לפני ${Math.floor(seconds / 60)} דקות`;
+            if (seconds < 86400) return `לפני ${Math.floor(seconds / 3600)} שעות`;
+            if (seconds < 604800) return `לפני ${Math.floor(seconds / 86400)} ימים`;
+            
+            return ZrimaPlusConfig.formatDate(dateString);
+        }
+        
+        // Quick Actions
+        function goToApp() {
+            window.location.href = 'signature-app-v3.html';
+        }
+        
+        function viewHistory() {
+            window.location.href = 'signature-app-v3.html#history';
+        }
+        
+        function exportData() {
+            if (confirm('ייצא את כל הנתונים ל-CSV?')) {
+                window.HistoryManager.exportToCSV();
+            }
+        }
+        
+        function viewSettings() {
+            alert('הגדרות יהיו זמינות בגרסה הבאה');
+        }
+        
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            loadStatistics();
+            loadRecentActivity();
+        }, 30000);
+    </script>
+</body>
+</html>

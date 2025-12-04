@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>זרימה פלוס - מערכת חתימות דיגיטליות</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --gold-primary: #D4AF37;
+            --gold-dark: #B8860B;
+            --gold-light: #FFD700;
+            --gold-pale: #F5E6D3;
+            --success: #2ECC71;
+            --danger: #E74C3C;
+            --dark: #1A1A1A;
+            --white: #FFFFFF;
+        }
+        
+        body {
+            font-family: 'Heebo', sans-serif;
+            background: linear-gradient(135deg, #1A1A1A 0%, #2C2C2C 50%, #1A1A1A 100%);
+            min-height: 100vh;
+            padding: 15px;
+            direction: rtl;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--dark) 0%, #2C2C2C 100%);
+            border-radius: 12px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3), 0 0 30px rgba(212, 175, 55, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid var(--gold-primary);
+        }
+        
+        .logo {
+            font-size: 32px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .slogan {
+            font-size: 14px;
+            color: var(--gold-pale);
+            font-style: italic;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 20px;
+            max-height: calc(100vh - 170px);
+        }
+        
+        .left-panel, .right-panel {
+            background: linear-gradient(to bottom, var(--white), #f8f8f8);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            border: 2px solid var(--gold-primary);
+            overflow-y: auto;
+            max-height: calc(100vh - 170px);
+        }
+        
+        .panel-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--dark);
+            padding-bottom: 12px;
+            border-bottom: 3px solid var(--gold-primary);
+        }
+        
+        .upload-zone {
+            border: 3px dashed var(--gold-primary);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: linear-gradient(135deg, var(--gold-pale), #fff);
+        }
+        
+        .upload-zone:hover {
+            border-color: var(--gold-light);
+            transform: translateY(-2px);
+        }
+        
+        .pdf-viewer {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .pdf-controls {
+            background: linear-gradient(135deg, var(--dark), #2C2C2C);
+            padding: 12px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            border: 2px solid var(--gold-primary);
+            border-bottom: none;
+        }
+        
+        .pdf-info {
+            color: var(--gold-light);
+            font-size: 14px;
+            font-weight: 700;
+        }
+        
+        .pdf-canvas-container {
+            position: relative;
+            border: 2px solid var(--gold-primary);
+            border-radius: 0 0 10px 10px;
+            overflow: auto;
+            max-height: calc(100vh - 380px);
+            background: #f5f5f5;
+        }
+        
+        #pdfCanvas {
+            display: block;
+            margin: 0 auto;
+            cursor: crosshair;
+        }
+        
+        /* ✅ שדות - ללא "אימות תוקף" */
+        .field-types {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .field-btn {
+            padding: 14px;
+            border: 2px solid var(--gold-primary);
+            background: linear-gradient(135deg, var(--gold-pale), #fff);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+        
+        .field-btn:hover {
+            background: linear-gradient(135deg, var(--gold-primary), var(--gold-light));
+            transform: translateY(-2px);
+        }
+        
+        .field-btn.active {
+            background: linear-gradient(135deg, var(--gold-primary), var(--gold-light));
+            box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.2);
+        }
+        
+        /* ✅ Field Marker - ניתן להזיז ולשנות גודל */
+        .field-marker {
+            position: absolute;
+            border: 3px solid;
+            background: rgba(212, 175, 55, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 13px;
+            color: var(--dark);
+            cursor: move;
+            user-select: none;
+        }
+        
+        .field-marker:hover {
+            border-width: 4px;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+        }
+        
+        .resize-handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--gold-primary);
+            border: 2px solid white;
+            border-radius: 50%;
+        }
+        
+        .resize-se {
+            bottom: -6px;
+            right: -6px;
+            cursor: se-resize;
+        }
+        
+        .form-group {
+            margin-bottom: 18px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--dark);
+        }
+        
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Heebo', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--gold-primary);
+            box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.1);
+        }
+        
+        .form-textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+        
+        /* ✅ Collapsible Info Box */
+        .collapsible-section {
+            margin-top: 10px;
+        }
+        
+        .collapsible-header {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border: 2px solid #2196F3;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            color: #0D47A1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        
+        .collapsible-header:hover {
+            background: linear-gradient(135deg, #bbdefb, #90caf9);
+        }
+        
+        .collapsible-content {
+            display: none;
+            background: #f0f8ff;
+            border: 2px solid #2196F3;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            padding: 12px;
+            font-size: 12px;
+            color: #1565C0;
+            line-height: 1.6;
+        }
+        
+        .collapsible-content.active {
+            display: block;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 14px;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gold-primary), var(--gold-light));
+            color: var(--dark);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(212, 175, 55, 0.5);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #27ae60);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #c0392b);
+            color: white;
+        }
+        
+        .btn-small {
+            padding: 8px 14px;
+            font-size: 12px;
+        }
+        
+        .btn-block {
+            width: 100%;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .alert {
+            padding: 14px;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .alert-warning {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border: 2px solid #856404;
+            color: #856404;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <div class="logo">✨ זרימה פלוס</div>
+                <div class="slogan">תן לכסף שלך לזרום</div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="panel-title">📄 מסמך PDF</div>
+                
+                <div class="upload-zone" id="uploadZone">
+                    <div style="font-size: 60px; margin-bottom: 15px;">📤</div>
+                    <div style="font-size: 18px; margin-bottom: 10px; font-weight: 700;">גרור קובץ PDF לכאן או לחץ לבחירה</div>
+                    <div style="font-size: 13px; color: #666;">גודל מקסימלי: 50MB | פורמט: PDF בלבד</div>
+                    <input type="file" id="fileInput" accept="application/pdf" style="display: none;">
+                </div>
+                
+                <div class="pdf-viewer" id="pdfViewer">
+                    <div class="pdf-controls">
+                        <div class="pdf-info">
+                            📄 <span id="fileName">מסמך</span> | 
+                            📊 עמוד <span id="pageNum">1</span> מתוך <span id="totalPages">1</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button class="btn btn-small btn-primary" onclick="previousPage()" id="prevBtn" disabled>◀ הקודם</button>
+                            <button class="btn btn-small btn-primary" onclick="nextPage()" id="nextBtn" disabled>הבא ▶</button>
+                            <button class="btn btn-small btn-danger" onclick="removeFile()">🗑️ הסר קובץ</button>
+                            <button class="btn btn-small btn-danger" onclick="removeAll()">🔥 הסר הכל</button>
+                        </div>
+                    </div>
+                    <div class="pdf-canvas-container" id="canvasContainer">
+                        <canvas id="pdfCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div class="panel-title">✍️ סוגי שדות</div>
+                
+                <!-- ✅ ללא "אימות תוקף" -->
+                <div class="field-types">
+                    <button class="field-btn" data-field="signature">
+                        <span style="font-size: 20px;">✍️</span>
+                        <span>חתימה</span>
+                    </button>
+                    <button class="field-btn" data-field="name">
+                        <span style="font-size: 20px;">👤</span>
+                        <span>שם מלא</span>
+                    </button>
+                    <button class="field-btn" data-field="email">
+                        <span style="font-size: 20px;">📧</span>
+                        <span>מייל</span>
+                    </button>
+                    <button class="field-btn" data-field="phone">
+                        <span style="font-size: 20px;">📱</span>
+                        <span>טלפון</span>
+                    </button>
+                    <button class="field-btn" data-field="idNumber">
+                        <span style="font-size: 20px;">🆔</span>
+                        <span>ת.ז</span>
+                    </button>
+                    <button class="field-btn" data-field="date">
+                        <span style="font-size: 20px;">📅</span>
+                        <span>תאריך</span>
+                    </button>
+                    <button class="field-btn" data-field="custom">
+                        <span style="font-size: 20px;">📝</span>
+                        <span>טקסט חופשי</span>
+                    </button>
+                </div>
+                
+                <div class="alert alert-warning">
+                    💡 בחר סוג שדה ואז לחץ על ה-PDF במקום הרצוי<br>
+                    🖱️ גרור שדה להזזה | 🔄 גרור פינה לשינוי גודל
+                </div>
+                
+                <div class="panel-title" style="margin-top: 20px;">
+                    📋 שדות שנוספו (<span id="fieldCount">0</span>)
+                </div>
+                
+                <div id="fieldsList" style="max-height: 220px; overflow-y: auto;">
+                    <div style="text-align: center; color: #999; padding: 20px;">טרם נוספו שדות</div>
+                </div>
+                
+                <div class="panel-title" style="margin-top: 20px;">📝 פרטי מסמך</div>
+                
+                <div class="form-group">
+                    <label class="form-label">שם המסמך *</label>
+                    <input type="text" class="form-input" id="docName" placeholder="לדוגמה: חוזה שכירות">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">שם הנמען *</label>
+                    <input type="text" class="form-input" id="recipientName" placeholder="לדוגמה: ישראל ישראלי">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">מייל הנמען (אופציונלי)</label>
+                    <input type="email" class="form-input" id="recipientEmail" placeholder="example@mail.com">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">הודעה אישית (אופציונלי)</label>
+                    <textarea class="form-textarea" id="personalMessage" placeholder="כתוב הודעה אישית..."></textarea>
+                </div>
+                
+                <!-- ✅ אימות ותוקף עם הסבר מתקפל -->
+                <div class="form-group">
+                    <label class="form-label">⏰ תוקף הקישור</label>
+                    <select class="form-select" id="expiration">
+                        <option value="-1">ללא תוקף</option>
+                        <option value="1">יום</option>
+                        <option value="3">3 ימים</option>
+                        <option value="7">שבוע</option>
+                        <option value="14" selected>14 ימים</option>
+                        <option value="30">חודש</option>
+                        <option value="90">3 חודשים</option>
+                    </select>
+                    <div class="collapsible-section">
+                        <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                            <span>💡 מה זה תוקף?</span>
+                            <span>▼</span>
+                        </div>
+                        <div class="collapsible-content">
+                            <strong>הסבר:</strong> הקישור יפסוק אוטומטית אחרי המועד.<br>
+                            <strong>דוגמאות:</strong><br>
+                            • דחוף → 3 ימים<br>
+                            • רגיל → 14 ימים<br>
+                            • ארוך טווח → 90 ימים
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">🔑 אימות זהות</label>
+                    <select class="form-select" id="verification">
+                        <option value="none">ללא אימות</option>
+                        <option value="email">מייל</option>
+                        <option value="sms">SMS</option>
+                        <option value="password">סיסמה</option>
+                    </select>
+                    <div class="collapsible-section">
+                        <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                            <span>💡 מה זה אימות?</span>
+                            <span>▼</span>
+                        </div>
+                        <div class="collapsible-content">
+                            <strong>הסבר:</strong> בדיקה שהחותם הוא באמת הנמען.<br>
+                            <strong>אפשרויות:</strong><br>
+                            • ללא → חופשי<br>
+                            • מייל → קוד למייל<br>
+                            • SMS → קוד לטלפון<br>
+                            • סיסמה → סיסמה שתגדיר
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group hidden" id="passwordGroup">
+                    <label class="form-label">🔐 סיסמה</label>
+                    <input type="text" class="form-input" id="customPassword" placeholder="הזן סיסמה">
+                </div>
+                
+                <button class="btn btn-primary btn-block" onclick="createSignatureLink()" style="margin-top: 25px;">
+                    🔗 צור קישור לחתימה
+                </button>
+                
+                <!-- ✅ כפתורי שליחה -->
+                <div id="sendOptions" class="hidden" style="margin-top: 20px;">
+                    <div class="panel-title">📤 שלח לנמען</div>
+                    <div class="actions">
+                        <button class="btn btn-success btn-small" onclick="copyLink()">📋 העתק</button>
+                        <button class="btn btn-success btn-small" onclick="sendWhatsApp()">📱 WhatsApp</button>
+                        <button class="btn btn-success btn-small" onclick="sendEmail()">📧 מייל</button>
+                    </div>
+                    <input type="text" id="generatedLink" readonly class="form-input" style="margin-top: 10px; font-size: 11px;">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        let pdfDoc = null;
+        let currentPage = 1;
+        let totalPages = 0;
+        let scale = 1.5;
+        let pdfFileName = '';
+        let selectedFieldType = null;
+        let fields = [];
+        let fieldIdCounter = 1;
+        let pdfDataURL = '';
+        
+        // ✅ ללא "validation"
+        const fieldTypes = {
+            signature: { name: 'חתימה', icon: '✍️', color: '#D4AF37' },
+            name: { name: 'שם מלא', icon: '👤', color: '#2ECC71' },
+            email: { name: 'מייל', icon: '📧', color: '#FF9800' },
+            phone: { name: 'טלפון', icon: '📱', color: '#9C27B0' },
+            idNumber: { name: 'ת.ז', icon: '🆔', color: '#E74C3C' },
+            date: { name: 'תאריך', icon: '📅', color: '#2196F3' },
+            custom: { name: 'טקסט חופשי', icon: '📝', color: '#607D8B' }
+        };
+        
+        // Upload Events
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        
+        uploadZone.addEventListener('click', () => fileInput.click());
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.style.borderColor = '#2ECC71';
+        });
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.style.borderColor = '#D4AF37';
+        });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.style.borderColor = '#D4AF37';
+            if (e.dataTransfer.files[0]) handleFileUpload(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) handleFileUpload(e.target.files[0]);
+        });
+        
+        // Password field
+        document.getElementById('verification').addEventListener('change', (e) => {
+            document.getElementById('passwordGroup').classList.toggle('hidden', e.target.value !== 'password');
+        });
+        
+        // Collapsible
+        function toggleCollapsible(header) {
+            const content = header.nextElementSibling;
+            content.classList.toggle('active');
+            header.querySelector('span:last-child').textContent = content.classList.contains('active') ? '▲' : '▼';
+        }
+        
+        // Handle File Upload
+        async function handleFileUpload(file) {
+            if (file.type !== 'application/pdf') {
+                alert('❌ PDF בלבד');
+                return;
+            }
+            if (file.size > 50 * 1024 * 1024) {
+                alert('❌ גדול מדי (מקס 50MB)');
+                return;
+            }
+            
+            pdfFileName = file.name;
+            
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                pdfDataURL = arrayBufferToBase64(arrayBuffer);
+                
+                pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                totalPages = pdfDoc.numPages;
+                
+                document.getElementById('uploadZone').style.display = 'none';
+                document.getElementById('pdfViewer').style.display = 'block';
+                document.getElementById('fileName').textContent = pdfFileName;
+                document.getElementById('totalPages').textContent = totalPages;
+                
+                await renderPage(currentPage);
+            } catch (error) {
+                alert('שגיאה: ' + error.message);
+            }
+        }
+        
+        function arrayBufferToBase64(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+        
+        async function renderPage(pageNum) {
+            const page = await pdfDoc.getPage(pageNum);
+            const viewport = page.getViewport({ scale: scale });
+            
+            const canvas = document.getElementById('pdfCanvas');
+            const context = canvas.getContext('2d');
+            
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+            
+            document.getElementById('pageNum').textContent = pageNum;
+            currentPage = pageNum;
+            
+            // Update navigation buttons
+            document.getElementById('prevBtn').disabled = (pageNum <= 1);
+            document.getElementById('nextBtn').disabled = (pageNum >= totalPages);
+            
+            redrawAllFields();
+        }
+        
+        // ✅ ניווט בין עמודים
+        function previousPage() {
+            if (currentPage > 1) {
+                renderPage(currentPage - 1);
+            }
+        }
+        
+        function nextPage() {
+            if (currentPage < totalPages) {
+                renderPage(currentPage + 1);
+            }
+        }
+        
+        // Field Selection
+        document.querySelectorAll('.field-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.field-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedFieldType = btn.getAttribute('data-field');
+            });
+        });
+        
+        // Canvas Click
+        document.getElementById('pdfCanvas').addEventListener('click', (e) => {
+            if (!selectedFieldType) {
+                alert('⚠️ בחר סוג שדה תחילה');
+                return;
+            }
+            
+            const rect = e.target.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const fieldInfo = fieldTypes[selectedFieldType];
+            
+            let fieldName = fieldInfo.name;
+            
+            // ✅ טקסט חופשי - שאל שם
+            if (selectedFieldType === 'custom') {
+                fieldName = prompt('הזן שם לשדה:', 'שדה מותאם') || fieldName;
+            }
+            
+            const field = {
+                id: fieldIdCounter++,
+                type: selectedFieldType,
+                name: fieldName,
+                icon: fieldInfo.icon,
+                color: fieldInfo.color,
+                x: x,
+                y: y,
+                width: 180,
+                height: 40,
+                page: currentPage
+            };
+            
+            fields.push(field);
+            drawFieldMarker(field);
+            updateFieldsList();
+            
+            document.querySelectorAll('.field-btn').forEach(b => b.classList.remove('active'));
+            selectedFieldType = null;
+        });
+        
+        // ✅ Draw Field Marker - ניתן להזיז ולשנות גודל
+        function drawFieldMarker(field) {
+            const container = document.getElementById('canvasContainer');
+            
+            const marker = document.createElement('div');
+            marker.className = 'field-marker';
+            marker.style.borderColor = field.color;
+            marker.style.left = field.x + 'px';
+            marker.style.top = field.y + 'px';
+            marker.style.width = field.width + 'px';
+            marker.style.height = field.height + 'px';
+            marker.textContent = `${field.icon} ${field.name}`;
+            marker.setAttribute('data-field-id', field.id);
+            
+            // ✅ Resize handle
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'resize-handle resize-se';
+            marker.appendChild(resizeHandle);
+            
+            // ✅ Drag to move
+            let isDragging = false;
+            let dragOffsetX = 0;
+            let dragOffsetY = 0;
+            
+            marker.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('resize-handle')) return;
+                isDragging = true;
+                dragOffsetX = e.clientX - marker.offsetLeft;
+                dragOffsetY = e.clientY - marker.offsetTop;
+                marker.style.zIndex = 1000;
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const newX = e.clientX - dragOffsetX;
+                const newY = e.clientY - dragOffsetY;
+                marker.style.left = newX + 'px';
+                marker.style.top = newY + 'px';
+                field.x = newX;
+                field.y = newY;
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    marker.style.zIndex = 1;
+                }
+            });
+            
+            // ✅ Resize
+            let isResizing = false;
+            resizeHandle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                isResizing = true;
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                const rect = marker.getBoundingClientRect();
+                const newWidth = e.clientX - rect.left;
+                const newHeight = e.clientY - rect.top;
+                if (newWidth > 50 && newHeight > 30) {
+                    marker.style.width = newWidth + 'px';
+                    marker.style.height = newHeight + 'px';
+                    field.width = newWidth;
+                    field.height = newHeight;
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                isResizing = false;
+            });
+            
+            container.appendChild(marker);
+        }
+        
+        function redrawAllFields() {
+            document.querySelectorAll('.field-marker').forEach(m => m.remove());
+            fields.filter(f => f.page === currentPage).forEach(drawFieldMarker);
+        }
+        
+        function updateFieldsList() {
+            const list = document.getElementById('fieldsList');
+            document.getElementById('fieldCount').textContent = fields.length;
+            
+            if (fields.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">טרם נוספו שדות</div>';
+                return;
+            }
+            
+            list.innerHTML = fields.map(f => `
+                <div style="background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px; padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                    <div>
+                        <div style="font-weight: 700;">${f.icon} ${f.name}</div>
+                        <div style="font-size: 11px; color: #666;">עמוד ${f.page} | ${Math.round(f.width)}×${Math.round(f.height)}px</div>
+                    </div>
+                    <button class="btn btn-danger btn-small" onclick="deleteField(${f.id})">🗑️</button>
+                </div>
+            `).join('');
+        }
+        
+        function deleteField(id) {
+            fields = fields.filter(f => f.id !== id);
+            document.querySelector(`[data-field-id="${id}"]`)?.remove();
+            updateFieldsList();
+        }
+        
+        function removeFile() {
+            if (confirm('מחק קובץ? (שדות יישמרו)')) {
+                pdfDoc = null;
+                pdfFileName = '';
+                pdfDataURL = '';
+                document.getElementById('pdfViewer').style.display = 'none';
+                document.getElementById('uploadZone').style.display = 'block';
+                fileInput.value = '';
+            }
+        }
+        
+        function removeAll() {
+            if (confirm('מחק הכל?')) {
+                pdfDoc = null;
+                pdfFileName = '';
+                pdfDataURL = '';
+                fields = [];
+                fieldIdCounter = 1;
+                document.getElementById('pdfViewer').style.display = 'none';
+                document.getElementById('uploadZone').style.display = 'block';
+                fileInput.value = '';
+                updateFieldsList();
+            }
+        }
+        
+        function createSignatureLink() {
+            if (!pdfDoc) {
+                alert('❌ העלה PDF');
+                return;
+            }
+            if (fields.length === 0) {
+                alert('❌ הוסף שדות');
+                return;
+            }
+            
+            const docName = document.getElementById('docName').value;
+            const recipientName = document.getElementById('recipientName').value;
+            
+            if (!docName || !recipientName) {
+                alert('❌ מלא שם מסמך ושם נמען');
+                return;
+            }
+            
+            const verification = document.getElementById('verification').value;
+            if (verification === 'password' && !document.getElementById('customPassword').value) {
+                alert('❌ הזן סיסמה');
+                return;
+            }
+            
+            const data = {
+                documentId: 'DOC-' + Date.now(),
+                documentName: docName,
+                fileName: pdfFileName,
+                pdfData: pdfDataURL,
+                recipientName: recipientName,
+                recipientEmail: document.getElementById('recipientEmail').value,
+                personalMessage: document.getElementById('personalMessage').value,
+                expiration: document.getElementById('expiration').value,
+                verification: verification,
+                password: verification === 'password' ? document.getElementById('customPassword').value : null,
+                fields: fields,
+                createdAt: new Date().toISOString()
+            };
+            
+            const encrypted = btoa(encodeURIComponent(JSON.stringify(data)));
+            const baseURL = window.location.href.split('/').slice(0, -1).join('/') + '/';
+            const signatureURL = `${baseURL}signature-page-PERFECT-V4.html?doc=${encrypted}`;
+            
+            document.getElementById('generatedLink').value = signatureURL;
+            document.getElementById('sendOptions').classList.remove('hidden');
+            
+            navigator.clipboard.writeText(signatureURL);
+            alert('✅ קישור נוצר והועתק!');
+            
+            // Save history
+            let history = JSON.parse(localStorage.getItem('signatureHistory') || '[]');
+            history.unshift({ ...data, signatureURL, status: 'created' });
+            localStorage.setItem('signatureHistory', JSON.stringify(history.slice(0, 100)));
+        }
+        
+        function copyLink() {
+            const link = document.getElementById('generatedLink').value;
+            navigator.clipboard.writeText(link);
+            alert('✅ הועתק!');
+        }
+        
+        function sendWhatsApp() {
+            const link = document.getElementById('generatedLink').value;
+            const name = document.getElementById('recipientName').value;
+            const doc = document.getElementById('docName').value;
+            
+            const msg = `שלום ${name},\n\nקיבלת מסמך לחתימה: "${doc}"\n\nלחתימה:\n${link}\n\nבברכה,\nזרימה פלוס`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+        
+        function sendEmail() {
+            const link = document.getElementById('generatedLink').value;
+            const email = document.getElementById('recipientEmail').value;
+            const name = document.getElementById('recipientName').value;
+            const doc = document.getElementById('docName').value;
+            
+            if (!email) {
+                alert('❌ הזן מייל נמען');
+                return;
+            }
+            
+            const subj = encodeURIComponent(`זרימה פלוס - חתימה: ${doc}`);
+            const body = encodeURIComponent(`שלום ${name},\n\nקיבלת מסמך לחתימה: "${doc}"\n\nלחתימה:\n${link}\n\nבברכה,\nזרימה פלוס`);
+            
+            window.location.href = `mailto:${email}?subject=${subj}&body=${body}`;
+        }
+    </script>
+</body>
+</html>
